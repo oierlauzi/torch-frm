@@ -38,40 +38,43 @@ class SHVolumeDecomposer:
         
         self.bandwidth_ = bandwidth
         
-        theta = torch.linspace(
+        self.theta_ = torch.linspace(
             0.0,
             math.pi,
             n_theta,
             dtype=dtype, 
             device=device
         )
-        self.theta_ = theta[None,None,:]
         
-        phi = (math.pi/n_phi) * torch.arange(n_phi, dtype=dtype, device=device)
-        self.phi_ = phi[None,:,None]
+        phi_step = (2*math.pi)/n_phi
+        self.phi_ = phi_step*torch.arange(n_phi, dtype=dtype, device=device)
         
-        radii = torch.linspace(
+        self.radii_ = torch.linspace(
             min_radius, 
             max_radius, 
             n_radii, 
             dtype=dtype, 
             device=device
         )
-        self.radii_ = radii[:,None,None]
+        
+        self.theta_grid_ = self.theta_[None,None,:]
+        self.phi_grid_ = self.phi_[None,:,None]
+        self.radii_grid_ = self.radii_[:,None,None]
         
         u = _spherical_to_cartesian(self.theta_, self.phi_)
         self.cartesian_ = self.radii_ * u
         
         self.spherical_harmonics_ = spherical_harmonics(
-            self.theta_, 
-            self.phi_, 
+            self.theta_grid_, 
+            self.phi_grid_, 
             self.bandwidth_
         )
         
-        self._transform = torch.sin(phi)*self.spherical_harmonics_.conj()
+        self._weights = \
+            torch.sin(self.theta_grid_)*self.spherical_harmonics_.conj()
 
     def transform(self, volume: torch.Tensor) -> torch.Tensor:
         shells = sample_3d(volume, self.cartesian_)
         shells = shells.to(self.spherical_harmonics_.dtype)
-        return torch.einsum('kij,hij->kh', shells, self._transform)
+        return torch.einsum('kij,hij->kh', shells, self._weights)
     
