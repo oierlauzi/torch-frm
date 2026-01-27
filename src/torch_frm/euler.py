@@ -34,13 +34,15 @@ def euler_zyz_to_matrix(
     sin_beta = torch.sin(beta)
     cos_gamma = torch.cos(gamma)
     sin_gamma = torch.sin(gamma)
+    cos_alpha_cos_beta = cos_alpha*cos_beta
+    sin_alpha_cos_beta = sin_alpha*cos_beta
 
-    out[...,0,0] = cos_alpha*cos_beta*cos_gamma - sin_alpha*sin_gamma
-    out[...,0,1] = -sin_alpha*cos_beta*cos_gamma - cos_alpha*sin_gamma
-    out[...,0,2] = sin_beta*sin_gamma
+    out[...,0,0] = cos_alpha_cos_beta*cos_gamma - sin_alpha*sin_gamma
+    out[...,0,1] = -sin_alpha_cos_beta*cos_gamma - cos_alpha*sin_gamma
+    out[...,0,2] = sin_beta*cos_gamma
 
-    out[...,1,0] = cos_alpha*cos_beta*sin_gamma + sin_alpha*cos_gamma
-    out[...,1,1] = -sin_alpha*cos_beta*sin_gamma + cos_alpha*cos_gamma
+    out[...,1,0] = cos_alpha_cos_beta*sin_gamma + sin_alpha*cos_gamma
+    out[...,1,1] = -sin_alpha_cos_beta*sin_gamma + cos_alpha*cos_gamma
     out[...,1,2] = sin_beta*sin_gamma
 
     out[...,2,0] = -cos_alpha*sin_beta

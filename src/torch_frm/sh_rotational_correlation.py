@@ -71,9 +71,10 @@ class SHRotationalCorrelation:
             
             start_1d = end_1d
             start_2d = end_2d
-            
+        
         rct_ft = torch.fft.fftshift(rct_ft)
-        return torch.fft.ifftn(rct_ft).real
+        rct_ft = rct_ft[..., :rct_ft.shape[-1]//2 + 1]
+        return torch.fft.irfftn(rct_ft)
         
 def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     """
@@ -100,8 +101,9 @@ def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     indices = torch.unravel_index(torch.argmax(rcf), rcf.shape)
     angles = 2*math.pi * (torch.tensor(indices) / torch.tensor(rcf.shape))
     xi, nu, omega = angles
-    alpha = xi + math.pi/2
+    
+    alpha = -xi
     beta = math.pi - nu
-    gamma = omega + math.pi/2
+    gamma = math.pi - omega
     
     return alpha, beta, gamma

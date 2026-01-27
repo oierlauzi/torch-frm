@@ -18,12 +18,13 @@ def _rotate_volume_around_center(
     rotation: np.ndarray, 
     order: int = 2
 ) -> np.ndarray:
+    rotation = np.flip(rotation)
     center = (np.array(volume.shape) - 1) / 2.0
-    offset = center - np.dot(rotation.T, center)
+    offset = center - np.dot(rotation, center)
     
     return scipy.ndimage.affine_transform(
         volume, 
-        matrix=rotation.T, 
+        matrix=rotation, 
         offset=offset, 
         order=order,
         mode='constant',
