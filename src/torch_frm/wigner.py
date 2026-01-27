@@ -1,13 +1,60 @@
 import torch
 
+def _pyramid_volume(height: int) -> int:
+    return (height*(4*height*height-1)) // 3
+
+def _pyramid_width(level: int) -> int:
+    return 2*level + 1
+
+def extract_wigner_matrix(pyramid: torch.Tensor, l: int) -> torch.Tensor:
+    """
+    Extract a matrix from a Wigner matrix pyramid.
+
+    Parameters
+    -----------
+    pyramid: torch.Tensor
+        The pyramid returned by `wigner_matrices`
+    l: int
+        Level (degree) to be extracted from the pyramid.
+    
+    Returns
+    -------
+    out: torch.Tensor
+        A 2D view into a particular level of a wigner pyramid. Shape of 
+        (2*l+1, 2*l+1)
+    """
+    count = _pyramid_width(l)
+    start = _pyramid_volume(l)
+    end = start + count*count
+    return pyramid[start:end].view(count, count)
+
 def wigner_matrices(
     theta: torch.Tensor,
     degrees: int
 ) -> torch.Tensor:
+    """
+    Computes Wigner's (small) d matrix pyramid for a given angle
+
+    Parameters
+    -----------
+    theta: torch.Tensor
+        Tensor of angles at which to evaluate the wigner matrixes
+    degrees: int
+        Parameter to define the Maximum order and degree of the Wigner
+        matrices.
+
+    Returns
+    -------
+    out: torch.Tensor
+        Tensor with wigner's d matrices. The shape is (N, theta.shape), 
+        where N is degrees*(4*degrees^2 - 1) // 2. The pyramid is flattened
+        into N and `` may be used to extract a particular level.
+    """
+    
     # FIXME: This was translated fron C-code and there is a lot of room to make 
     # it more Pythonic.
     size = 2*degrees
-    N = (degrees*(4*degrees*degrees-1)) // 3
+    N = _pyramid_volume(degrees)
 
     out = torch.empty(
         (N, ) + theta.shape,
@@ -63,7 +110,7 @@ def wigner_matrices(
                 d[start:end] = dd[start:end]
 
             if half_degree == 0:
-                base = l*(4*l*l-1) // 3
+                base = _pyramid_volume(l)
                 for i in range(0, j2+1):
                     start_dst = base + i*(j2+1)
                     end_dst = start_dst + j2+1
