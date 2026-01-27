@@ -9,6 +9,7 @@ from torch_frm.spherical_harmonics import (
 )
 from torch_frm.wigner import wigner_matrices
 from sample_3d import sample_3d
+from euler import euler_zyz_to_matrix
 
 try:
     __version__ = version("torch-frm")
@@ -19,5 +20,6 @@ __all__ = [
     spherical_harmonics,
     ravel_spherical_harmonic_index,
     wigner_matrices,
-    sample_3d
+    sample_3d,
+    euler_zyz_to_matrix
 ]
