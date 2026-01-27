@@ -4,6 +4,8 @@ def wigner_matrices(
     theta: torch.Tensor,
     degrees: int
 ) -> torch.Tensor:
+    # FIXME: This was translated fron C-code and there is a lot of room to make 
+    # it more Pythonic.
     size = 2*degrees
     N = (degrees*(4*degrees*degrees-1)) // 3
 
