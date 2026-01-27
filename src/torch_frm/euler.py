@@ -1,4 +1,37 @@
+from typing import Tuple
 import torch
+import math
+
+def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
+    """
+    Find the optimal alignment angles in a Rotational Correlation Function (RCF)
+    
+    The results are returned in euler ZYZ extrinsic convention.
+
+    Parameters
+    -----------
+    rcf: torch.Tensor
+        The rotational correlation function presumably computed by a 
+        `SHVolumeDecomposer`
+
+    Returns
+    -------
+    alpha: torch.Tensor
+        First rotation around Z axis in radians.
+    beta: torch.Tensor
+        Second rotation around Y axis in radians.
+    gamma: torch.Tensor
+        Third rotation around Z axis in radians.
+    """
+    
+    indices = torch.unravel_index(torch.argmax(rcf), rcf.shape)
+    angles = 2*math.pi * (torch.tensor(indices) / torch.tensor(rcf.shape))
+    xi, nu, omega = angles
+    alpha = xi + math.pi/2
+    beta = math.pi - nu
+    gamma = omega + math.pi/2
+    
+    return alpha, beta, gamma
 
 def euler_zyz_to_matrix(
     alpha: torch.Tensor,
