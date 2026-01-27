@@ -2,6 +2,7 @@ import torch
 
 from torch_frm import (
     SHVolumeDecomposer, 
+    SHRotationalCorrelation,
     find_rcf_peak_angles, 
     euler_zyz_to_matrix
 )
@@ -42,10 +43,15 @@ def frm(x: torch.Tensor, r: torch.Tensor, bandwidth: int = 32) -> torch.Tensor:
         dtype=dtype, 
         device=device
     )
+    correlation_function = SHRotationalCorrelation(
+        bandwidth=bandwidth,
+        dtype=dtype,
+        device=device
+    )
     
     sh_x = decomposer.transform(x)
     sh_r = decomposer.transform(r)
-    rcf = decomposer.compute_rcf(sh_x, sh_r)
+    rcf = correlation_function.rcf(sh_x, sh_r)
 
     alpha, beta, gamma = find_rcf_peak_angles(rcf)
     return euler_zyz_to_matrix(alpha, beta, gamma)

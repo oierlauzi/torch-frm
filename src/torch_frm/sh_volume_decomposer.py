@@ -2,7 +2,7 @@ from typing import Optional
 import torch
 import math
 
-from torch_frm import sample_3d, spherical_harmonics, wigner_matrices
+from torch_frm import sample_3d, spherical_harmonics
 from torch_frm import spherical_harmonics
 
 def _spherical_to_cartesian(
@@ -22,6 +22,10 @@ def _spherical_to_cartesian(
     return out
 
 class SHVolumeDecomposer:
+    """
+    Class to decompose 3D volumes into spherical harmonics.
+    """
+    
     def __init__(
         self, 
         bandwidth: int, 
@@ -33,6 +37,32 @@ class SHVolumeDecomposer:
         device: Optional[torch.device] = None,
         dtype: Optional[torch.dtype] = None
     ):
+        """
+        Parameters
+        -----------
+        bandwidth: int
+            Number of spherical harmonic components to be used for alignment. The
+            higher the number, the higher the precision but lower performance.
+        n_radii: int
+            Number of radial shells to be used.
+        min_radius: float
+            Minimum radius to be extracted. Normalized to the volume radius.
+        max_radius: float
+            Maximum radius to be extracted. Normalized to the volume radius.
+        n_theta: Optional[int]
+            Number of polar angles to be used. If None, it will be set to 
+            2*bandwidth.
+        n_phi: Optional[int]
+            Number of azimuthal angles to be used. If None, it will be set to 
+            2*bandwidth.
+        device: Optional[torch.device]
+            Device where to allocate internal tensors. If None, the default
+            torch device will be used.
+        dtype: Optional[torch.dtype]
+            Data type for internal tensors. If None, the default torch dtype
+            will be used.
+        """
+        
         n_theta = n_theta or 2*bandwidth
         n_phi = n_phi or 2*bandwidth
         
@@ -72,46 +102,24 @@ class SHVolumeDecomposer:
         
         self._weights = \
             torch.sin(self.theta_grid_)*self.spherical_harmonics_.conj()
-            
-        self._wigner_half_pi = wigner_matrices(
-            torch.tensor(0.5*math.pi, dtype=dtype, device=device),
-            self.bandwidth_
-        )
 
     def transform(self, volume: torch.Tensor) -> torch.Tensor:
+        """
+        Decompose a volume into spherical harmonics shell by shell.
+        
+        Parameters
+        -----------
+        volume: torch.Tensor
+            The input volume to be decomposed. Shape (N, N, N). Must be on
+            the same device and have the same dtype as the decomposer.
+            
+        Returns
+        -------
+        out: torch.Tensor
+            The spherical harmonic coefficients of the volume shells. Shape
+            (n_radii, bandwidth^2)
+        """
         shells = sample_3d(volume, self.cartesian_)
         shells = shells.to(self.spherical_harmonics_.dtype)
         return torch.einsum('kij,hij,k->kh', shells, self._weights, self.radii_)
     
-    def compute_rcf(self, x_sh: torch.Tensor, y_sh: torch.Tensor) -> torch.Tensor:
-        dtype = torch.promote_types(x_sh.dtype, y_sh.dtype)
-        rct_ft = torch.zeros(
-            (2*self.bandwidth_, )*3, 
-            dtype=dtype, 
-            device=x_sh.device
-        )
-
-        start_1d = 0
-        start_2d = 0
-        for l in range(self.bandwidth_):
-            count = 2*l + 1
-            end_1d = start_1d + count
-            end_2d = start_2d + count*count
-            
-            d = self._wigner_half_pi[start_2d:end_2d].view(count, count)
-            i = torch.einsum(
-                'ki,kj->ij', 
-                x_sh[start_1d:end_1d], 
-                y_sh[start_1d:end_1d].conj()
-            )
-            
-            term = d[:,:,None]*d[None,:,:]*i[:,None,:]
-            central_range = slice(self.bandwidth_ - l, self.bandwidth_ + l + 1)
-            rct_ft[central_range,central_range,central_range] += term
-            
-            start_1d = end_1d
-            start_2d = end_2d
-            
-        rct_ft = torch.fft.fftshift(rct_ft)
-        return torch.fft.ifftn(rct_ft)
-            
