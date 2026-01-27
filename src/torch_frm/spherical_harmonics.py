@@ -51,8 +51,7 @@ def _associated_legendre_ortho(
 ) -> torch.Tensor:
     """
     Computes the orthogonalized values P^l_m(cos(theta)) with Condon-Shortley
-    phase for all valid l-m
-    combinations upto a level.
+    phase for all valid l-m combinations upto a level.
 
     Parameters
     -----------
@@ -62,7 +61,7 @@ def _associated_legendre_ortho(
     degrees: int
         Parameter to define the Maximum order and degree of the Legendre
         polynomials, i.e. the polynomials are generated for all l-s in
-        0, 1, ... degrees-1 and m-s in 0 to l
+        0, 1, ... degrees-1 and m-s in [0, l]
 
     Returns
     -------

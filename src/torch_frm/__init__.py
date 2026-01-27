@@ -7,8 +7,8 @@ from torch_frm.spherical_harmonics import (
     spherical_harmonics, 
     ravel_spherical_harmonic_index
 )
-
 from torch_frm.wigner import wigner_matrices
+from sample_3d import sample_3d
 
 try:
     __version__ = version("torch-frm")
@@ -18,5 +18,6 @@ except PackageNotFoundError:
 __all__ = [
     spherical_harmonics,
     ravel_spherical_harmonic_index,
-    wigner_matrices
+    wigner_matrices,
+    sample_3d
 ]
