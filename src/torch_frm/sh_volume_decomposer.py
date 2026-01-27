@@ -87,12 +87,11 @@ class SHVolumeDecomposer:
             device=device
         )
         
-        self.theta_grid_ = self.theta_[None,None,:]
-        self.phi_grid_ = self.phi_[None,:,None]
-        self.radii_grid_ = self.radii_[:,None,None]
+        self.theta_grid_ = self.theta_[None,:]
+        self.phi_grid_ = self.phi_[:,None]
         
-        u = _spherical_to_cartesian(self.theta_, self.phi_)
-        self.cartesian_ = self.radii_ * u
+        u = _spherical_to_cartesian(self.theta_grid_, self.phi_grid_)
+        self.cartesian_grid_ = self.radii_[:,None,None,None] * u
         
         self.spherical_harmonics_ = spherical_harmonics(
             self.theta_grid_, 
@@ -119,7 +118,7 @@ class SHVolumeDecomposer:
             The spherical harmonic coefficients of the volume shells. Shape
             (n_radii, bandwidth^2)
         """
-        shells = sample_3d(volume, self.cartesian_)
+        shells = sample_3d(volume, self.cartesian_grid_)
         shells = shells.to(self.spherical_harmonics_.dtype)
         return torch.einsum('kij,hij,k->kh', shells, self._weights, self.radii_)
     

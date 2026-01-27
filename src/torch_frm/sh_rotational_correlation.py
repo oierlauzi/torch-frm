@@ -61,8 +61,8 @@ class SHRotationalCorrelation:
             d = self._wigner_half_pi[start_2d:end_2d].view(count, count)
             i = torch.einsum(
                 'ki,kj->ij', 
-                x[start_1d:end_1d], 
-                y[start_1d:end_1d].conj()
+                x[:,start_1d:end_1d], 
+                y[:,start_1d:end_1d].conj()
             )
             
             term = d[:,:,None]*d[None,:,:]*i[:,None,:]
@@ -73,7 +73,7 @@ class SHRotationalCorrelation:
             start_2d = end_2d
             
         rct_ft = torch.fft.fftshift(rct_ft)
-        return torch.fft.ifftn(rct_ft)
+        return torch.fft.ifftn(rct_ft).real
         
 def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     """

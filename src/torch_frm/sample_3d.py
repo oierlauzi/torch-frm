@@ -3,22 +3,22 @@ import torch
 def _sample_3d(
     volume: torch.Tensor,
     positions: torch.Tensor,
-    mode='bilinear',
-    padding_mode='zeros'
+    mode: str,
+    padding: str
 ) -> torch.Tensor:
     return torch.nn.functional.grid_sample(
         volume, 
         positions, 
         align_corners=False,
         mode=mode,
-        padding_mode=padding_mode
+        padding_mode=padding
     )
     
 def sample_3d(
     volume: torch.Tensor,
     positions: torch.Tensor,
-    mode='bilinear',
-    padding='zeros'
+    mode: str = 'bilinear',
+    padding: str = 'zeros'
 ) -> torch.Tensor:
     """
     Sample a 3D volume at the specified fractional coordinates.
