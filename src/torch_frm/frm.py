@@ -1,10 +1,10 @@
 import torch
 
-from torch_frm import (
-    SHVolumeDecomposer, 
-    SHRotationalCorrelation,
-    find_rcf_peak_angles, 
-    euler_zyz_to_matrix
+from .euler import euler_zyz_to_matrix
+from .sh_volume_decomposer import SHVolumeDecomposer
+from .sh_rotational_correlation import (
+    SHRotationalCorrelation, 
+    find_rcf_peak_angles
 )
 
 def frm(x: torch.Tensor, r: torch.Tensor, bandwidth: int = 32) -> torch.Tensor:
@@ -27,6 +27,7 @@ def frm(x: torch.Tensor, r: torch.Tensor, bandwidth: int = 32) -> torch.Tensor:
         A 2D view into a particular level of a wigner pyramid. Shape of 
         (2*l+1, 2*l+1)
     """
+    
     if x.shape != r.shape:
         raise ValueError('Both input operands must have the same shape')
     

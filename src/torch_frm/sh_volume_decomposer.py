@@ -2,8 +2,8 @@ from typing import Optional
 import torch
 import math
 
-from torch_frm import sample_3d, spherical_harmonics
-from torch_frm import spherical_harmonics
+from .spherical_harmonics import spherical_harmonics
+from .sample_3d import sample_3d
 
 def _spherical_to_cartesian(
     theta: torch.Tensor,

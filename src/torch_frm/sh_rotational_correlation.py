@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 import torch
 import math
 
-from torch_frm import wigner_matrices
+from .wigner import wigner_matrices
 
 class SHRotationalCorrelation:
     """
