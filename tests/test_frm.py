@@ -1,17 +1,27 @@
 import numpy as np
 import scipy.ndimage
-import mrcfile
 import torch
-import pytest
 
-from emdb import fetch_emdb_map
 from torch_frm import frm
 
-@pytest.fixture
-def emdb_2660() -> np.ndarray:
-    volume_path = fetch_emdb_map(2660)
-    with mrcfile.open(volume_path) as mrc:
-        return mrc.data
+def _make_test_volume() -> np.ndarray:
+    volume = np.zeros((32, 32, 32), dtype=np.float32)
+    
+    rng = np.random.default_rng(42)
+    points = rng.integers(low=8, high=24, size=(32, 3))
+    for point in points:
+        volume[tuple(point)] = 1.0
+
+    volume_ft = np.fft.rfftn(volume)
+    wz = np.fft.fftfreq(volume.shape[0])[:,None, None]
+    wy = np.fft.fftfreq(volume.shape[1])[None, :, None]
+    wx = np.fft.rfftfreq(volume.shape[2])[None, None, :]
+    w = np.sqrt(np.square(wx) + np.square(wy) + np.square(wz))
+    sigma = 0.15
+    volume_ft *= np.exp(-0.5 * np.square(w / sigma))
+    
+    volume = np.fft.irfftn(volume_ft)
+    return volume
 
 def _rotate_volume_around_center(
     volume: np.ndarray, 
@@ -38,14 +48,9 @@ def test_frm():
         [0.6339,  0.6500, 0.4199]
     ])
 
-    volume_path = fetch_emdb_map(2660)
-    with mrcfile.open(volume_path) as mrc:
-        volume_ref = mrc.data
-
-    volume_exp = torch.tensor(_rotate_volume_around_center(volume_ref, R))
-    volume_ref = torch.tensor(volume_ref)
+    volume = _make_test_volume()
+    volume_exp = torch.tensor(_rotate_volume_around_center(volume, R))
+    volume_ref = torch.tensor(volume)
     
     alignment = frm(volume_exp, volume_ref, bandwidth=32)
-    print(alignment, flush=True)
-    fdsfds
-    
+    assert torch.allclose(alignment, torch.tensor(R, dtype=alignment.dtype), atol=0.1)
