@@ -4,7 +4,7 @@ import math
 
 from .wigner import wigner_matrices
 
-class SHRotationalCorrelation:
+class SHRotationalCorrelator:
     """
     Class to compute the rotational cross-correlation function between two sets
     of spherical harmonic coefficients.

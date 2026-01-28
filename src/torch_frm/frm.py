@@ -2,8 +2,8 @@ import torch
 
 from .euler import euler_zyz_to_matrix
 from .sh_volume_decomposer import SHVolumeDecomposer
-from .sh_rotational_correlation import (
-    SHRotationalCorrelation, 
+from .sh_rotational_correlator import (
+    SHRotationalCorrelator, 
     find_rcf_peak_angles
 )
 
@@ -44,7 +44,7 @@ def frm(x: torch.Tensor, r: torch.Tensor, bandwidth: int = 32) -> torch.Tensor:
         dtype=dtype, 
         device=device
     )
-    correlation_function = SHRotationalCorrelation(
+    correlation_function = SHRotationalCorrelator(
         bandwidth=bandwidth,
         dtype=dtype,
         device=device
