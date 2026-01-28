@@ -5,10 +5,10 @@ import torch
 from torch_frm import frm
 
 def _make_test_volume() -> np.ndarray:
-    volume = np.zeros((32, 32, 32), dtype=np.float32)
+    volume = np.zeros((64, 64, 64), dtype=np.float32)
     
     rng = np.random.default_rng(42)
-    points = rng.integers(low=8, high=24, size=(32, 3))
+    points = rng.integers(low=16, high=48, size=(64, 3))
     for point in points:
         volume[tuple(point)] = 1.0
 
@@ -17,12 +17,12 @@ def _make_test_volume() -> np.ndarray:
     wy = np.fft.fftfreq(volume.shape[1])[None, :, None]
     wx = np.fft.rfftfreq(volume.shape[2])[None, None, :]
     w = np.sqrt(np.square(wx) + np.square(wy) + np.square(wz))
-    sigma = 0.15
+    sigma = 0.25
     volume_ft *= np.exp(-0.5 * np.square(w / sigma))
     
     volume = np.fft.irfftn(volume_ft)
+    
     return volume
-
 def _rotate_volume_around_center(
     volume: np.ndarray, 
     rotation: np.ndarray, 
@@ -49,7 +49,7 @@ def test_frm():
     ])
 
     volume = _make_test_volume()
-    volume_exp = torch.tensor(_rotate_volume_around_center(volume, R))
+    volume_exp = torch.tensor(_rotate_volume_around_center(volume, R.T))
     volume_ref = torch.tensor(volume)
     
     alignment = frm(volume_exp, volume_ref, bandwidth=32)
