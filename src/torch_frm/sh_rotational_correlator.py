@@ -44,23 +44,34 @@ class SHRotationalCorrelator:
         """
         
         n_radii = x.shape[0]
-        if x.shape != (n_radii, self.bandwidth_**2):
+        expected_shape = (n_radii, self.bandwidth_**2)
+        expected_device = self._wigner_half_pi.device
+        if x.shape != expected_shape:
             raise ValueError(
-                f"Expected x to have shape {(n_radii, self.bandwidth_**2)}, "
+                f"Expected x to have shape {expected_shape}, "
                 f"but got {x.shape}."
             )
-            
-        if y.shape != (n_radii, self.bandwidth_**2):
+        if x.device != expected_device:
             raise ValueError(
-                f"Expected y to have shape {(n_radii, self.bandwidth_**2)}, "
+                f"x is on device {x.device}, but correlator is on "
+                f"device {expected_device}."
+            )
+        if y.shape != expected_shape:
+            raise ValueError(
+                f"Expected y to have shape {expected_shape}, "
                 f"but got {y.shape}."
+            )
+        if y.device != expected_device:
+            raise ValueError(
+                f"y is on device {y.device}, but correlator is on "
+                f"device {expected_device}."
             )
         
         dtype = torch.promote_types(x.dtype, y.dtype)
         rcf_ft = torch.zeros(
             (2*self.bandwidth_, )*3, 
             dtype=dtype, 
-            device=x.device
+            device=self._wigner_half_pi.device
         )
 
         start_1d = 0
@@ -70,14 +81,14 @@ class SHRotationalCorrelator:
             end_1d = start_1d + count
             end_2d = start_2d + count*count
             
-            d = self._wigner_half_pi[start_2d:end_2d].view(count, count)
-            i = torch.einsum(
-                'ki,kj->ij', 
+            d = self._wigner_half_pi[start_2d:end_2d].view(count, count).to(dtype)
+            term = torch.einsum(
+                'ip,ir,pq,qr->pqr', 
                 x[:,start_1d:end_1d], 
-                y[:,start_1d:end_1d].conj()
+                y[:,start_1d:end_1d].conj(),
+                d,
+                d
             )
-            
-            term = d[:,:,None]*d[None,:,:]*i[:,None,:]
             central_range = slice(self.bandwidth_ - l, self.bandwidth_ + l + 1)
             rcf_ft[central_range,central_range,central_range] += term
             
