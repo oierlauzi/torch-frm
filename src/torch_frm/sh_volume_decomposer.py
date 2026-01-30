@@ -2,7 +2,7 @@ from typing import Optional
 import torch
 import math
 
-from .spherical_harmonics import spherical_harmonics
+from .spherical_harmonics import spherical_harmonics, _associated_legendre_ortho
 from .sample_3d import sample_3d
 
 def _spherical_to_cartesian(
@@ -101,7 +101,7 @@ class SHVolumeDecomposer:
         
         self._decomposition_kernel = \
             torch.sin(self.theta_grid_)*self.spherical_harmonics_.conj()
-
+            
     def transform(self, volume: torch.Tensor) -> torch.Tensor:
         """
         Decompose a volume into spherical harmonics shell by shell.
@@ -118,7 +118,48 @@ class SHVolumeDecomposer:
             The spherical harmonic coefficients of the volume shells. Shape
             (n_radii, bandwidth^2)
         """
+        
         shells = sample_3d(volume, self.cartesian_grid_)
+        shells_ft = torch.fft.rfft(shells, dim=2) # Phi direction
+
+        legendre = _associated_legendre_ortho(
+            self.theta_,
+            self.bandwidth_
+        )
+        sin_theta = torch.sin(self.theta_)
+        integration_kernel = (legendre * sin_theta).to(shells_ft.dtype)
+        radii = self.radii_.to(shells_ft.dtype)
+        
+        out = torch.zeros(
+            (len(self.radii_), self.bandwidth_*self.bandwidth_),
+            dtype=shells_ft.dtype,
+            device=shells_ft.device
+        )
+        
+        for l in range(self.bandwidth_):
+            base_out = l*(l+1)
+            base_in = base_out // 2
+            
+            for m in range(0, l+1):
+                out[:,base_out+m] = torch.einsum(
+                    'ji,i,j->j', 
+                    shells_ft[:,:,m],
+                    integration_kernel[base_in+m],
+                    radii
+                )
+            
+            phase = -1
+            for m in range(1, l+1):
+                out[:,base_out-m] = torch.einsum(
+                    'ji,i,j->j', 
+                    shells_ft[:,:,m].conj(),
+                    phase*integration_kernel[base_in+m],
+                    radii
+                )
+                phase = -phase
+            
+        return out
+        """
         shells = shells.to(self.spherical_harmonics_.dtype)
         
         return torch.einsum(
@@ -127,4 +168,5 @@ class SHVolumeDecomposer:
             self._decomposition_kernel, 
             self.radii_
         )
-    
+        """
+        
