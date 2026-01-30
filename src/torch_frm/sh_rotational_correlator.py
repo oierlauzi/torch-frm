@@ -135,9 +135,9 @@ def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     indices = torch.unravel_index(torch.argmax(rcf), rcf.shape)
     xi, nu, omega = (2*math.pi / N) * torch.tensor(indices)
     
-    # Convert to ZYZ extrinsic convention TODO
-    alpha = omega
-    beta = nu
-    gamma = xi
+    # Convert to ZYZ extrinsic convention
+    alpha = xi - math.pi/2
+    beta = math.pi - nu
+    gamma = omega - math.pi/2
     
     return alpha, beta, gamma
