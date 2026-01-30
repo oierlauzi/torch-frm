@@ -86,7 +86,6 @@ def _associated_legendre_ortho(
     # Rest
     base_upper1 = 0
     base_upper2 = None
-    phase = -1
     for l in range(1, degrees):
         base = base_upper1 + l
         for m in range(0, l-1):
@@ -99,12 +98,12 @@ def _associated_legendre_ortho(
         # Last two elements of the row
         upper = out[base_upper1 + l-1]
         out[base+l-1] = math.sqrt(2*l + 1) * cos * upper
-        out[base+l] = phase*math.sqrt((2*l + 1) / (2*l)) * sin * upper
+        out[base+l] = math.sqrt((2*l + 1) / (2*l)) * sin * upper
 
         # Prepare next iteration
         base_upper2 = base_upper1
         base_upper1 = base
-        phase = -phase
+        #phase = -phase
 
     assert (base_upper1+degrees) == N
     return out

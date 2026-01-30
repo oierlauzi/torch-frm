@@ -140,13 +140,15 @@ class SHVolumeDecomposer:
             base_out = l*(l+1)
             base_in = base_out // 2
             
+            phase = 1
             for m in range(0, l+1):
                 out[:,base_out+m] = torch.einsum(
                     'ji,i,j->j', 
                     shells_ft[:,:,m],
-                    integration_kernel[base_in+m],
+                    phase*integration_kernel[base_in+m],
                     radii
                 )
+                phase = -phase
             
             phase = -1
             for m in range(1, l+1):
