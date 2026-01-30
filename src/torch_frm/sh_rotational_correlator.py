@@ -31,12 +31,10 @@ class SHRotationalCorrelator:
         -----------
         x: torch.Tensor
             Spherical harmonic coefficients of the first volume. Shape
-            (n_radii, bandwidth^2). Must have been computed with this 
-            decomposer.
+            (n_radii, bandwidth^2).
         y: torch.Tensor
             Spherical harmonic coefficients of the second volume. Shape
-            (n_radii, bandwidth^2). Must have been computed with this 
-            decomposer.
+            (n_radii, bandwidth^2).
             
         Returns
         -------
@@ -44,8 +42,22 @@ class SHRotationalCorrelator:
             The rotational cross-correlation function between the two volumes. 
             Shape (2*bandwidth, 2*bandwidth, 2*bandwidth).
         """
+        
+        n_radii = x.shape[0]
+        if x.shape != (n_radii, self.bandwidth_**2):
+            raise ValueError(
+                f"Expected x to have shape {(n_radii, self.bandwidth_**2)}, "
+                f"but got {x.shape}."
+            )
+            
+        if y.shape != (n_radii, self.bandwidth_**2):
+            raise ValueError(
+                f"Expected y to have shape {(n_radii, self.bandwidth_**2)}, "
+                f"but got {y.shape}."
+            )
+        
         dtype = torch.promote_types(x.dtype, y.dtype)
-        rct_ft = torch.zeros(
+        rcf_ft = torch.zeros(
             (2*self.bandwidth_, )*3, 
             dtype=dtype, 
             device=x.device
@@ -67,14 +79,14 @@ class SHRotationalCorrelator:
             
             term = d[:,:,None]*d[None,:,:]*i[:,None,:]
             central_range = slice(self.bandwidth_ - l, self.bandwidth_ + l + 1)
-            rct_ft[central_range,central_range,central_range] += term
+            rcf_ft[central_range,central_range,central_range] += term
             
             start_1d = end_1d
             start_2d = end_2d
         
-        rct_ft = torch.fft.fftshift(rct_ft)
-        rct_ft = rct_ft[..., :rct_ft.shape[-1]//2 + 1]
-        return torch.fft.irfftn(rct_ft)
+        rcf_ft = torch.fft.fftshift(rcf_ft)
+        rcf_ft = rcf_ft[..., :(rcf_ft.shape[-1]//2 + 1)]
+        return torch.fft.irfftn(rcf_ft)
         
 def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     """
@@ -86,8 +98,9 @@ def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     -----------
     rcf: torch.Tensor
         The rotational correlation function presumably computed by a 
-        `SHVolumeDecomposer`
-
+        `SHVolumeDecomposer`. Must have shape 
+        (2*bandwidth, 2*bandwidth, 2*bandwidth).
+    
     Returns
     -------
     alpha: torch.Tensor
@@ -98,12 +111,22 @@ def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
         Third rotation around Z axis in radians.
     """
     
-    indices = torch.unravel_index(torch.argmax(rcf), rcf.shape)
-    angles = 2*math.pi * (torch.tensor(indices) / torch.tensor(rcf.shape))
-    xi, nu, omega = angles
+    N = rcf.shape[0]
+    if rcf.shape != (N, N, N):
+        raise ValueError(
+            f"Expected rcf to have shape {(N, N, N)}, but got {rcf.shape}."
+        )
+        
+    # Remove redundant part for computation
+    rcf = rcf[:, :(N//2+1), :] 
     
-    alpha = -xi
-    beta = math.pi - nu
-    gamma = math.pi - omega
+    # Find the angles associated to the peak
+    indices = torch.unravel_index(torch.argmax(rcf), rcf.shape)
+    xi, nu, omega = (2*math.pi / N) * torch.tensor(indices)
+    
+    # Convert to ZYZ extrinsic convention TODO
+    alpha = omega
+    beta = nu
+    gamma = xi
     
     return alpha, beta, gamma

@@ -87,8 +87,8 @@ class SHVolumeDecomposer:
             device=device
         )
         
-        self.theta_grid_ = self.theta_[None,:]
-        self.phi_grid_ = self.phi_[:,None]
+        self.theta_grid_ = self.theta_[:,None]
+        self.phi_grid_ = self.phi_[None,:]
         
         u = _spherical_to_cartesian(self.theta_grid_, self.phi_grid_)
         self.cartesian_grid_ = self.radii_[:,None,None,None] * u
@@ -99,7 +99,7 @@ class SHVolumeDecomposer:
             self.bandwidth_
         )
         
-        self._weights = \
+        self._decomposition_kernel = \
             torch.sin(self.theta_grid_)*self.spherical_harmonics_.conj()
 
     def transform(self, volume: torch.Tensor) -> torch.Tensor:
@@ -120,5 +120,11 @@ class SHVolumeDecomposer:
         """
         shells = sample_3d(volume, self.cartesian_grid_)
         shells = shells.to(self.spherical_harmonics_.dtype)
-        return torch.einsum('kij,hij,k->kh', shells, self._weights, self.radii_)
+        
+        return torch.einsum(
+            'kij,hij,k->kh', 
+            shells, 
+            self._decomposition_kernel, 
+            self.radii_
+        )
     
