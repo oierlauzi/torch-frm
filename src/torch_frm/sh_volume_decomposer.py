@@ -2,7 +2,7 @@ from typing import Optional
 import torch
 import math
 
-from .spherical_harmonics import spherical_harmonics, _associated_legendre_ortho
+from .legendre import associated_legendre_ortho
 from .sample_3d import sample_3d
 
 def _spherical_to_cartesian(
@@ -93,7 +93,7 @@ class SHVolumeDecomposer:
         u = _spherical_to_cartesian(self.theta_grid_, self.phi_grid_)
         self.cartesian_grid_ = self.radii_[:,None,None,None] * u
         
-        self.associated_legendre_ = _associated_legendre_ortho(
+        self.associated_legendre_ = associated_legendre_ortho(
             self.theta_, 
             self.bandwidth_
         )

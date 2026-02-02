@@ -11,9 +11,9 @@ from torch_frm.sh_rotational_correlator import (
     find_rcf_peak_angles
 )
 from torch_frm.sh_volume_decomposer import SHVolumeDecomposer
-from torch_frm.spherical_harmonics import (
-    spherical_harmonics, 
-    ravel_spherical_harmonic_index
+from torch_frm.legendre import (
+    associated_legendre_ortho, 
+    ravel_associated_legendre_index
 )
 from torch_frm.wigner import wigner_matrices
 
@@ -23,9 +23,9 @@ except PackageNotFoundError:
     __version__ = "uninstalled"
     
 __all__ = [
-    spherical_harmonics,
     frm,
-    ravel_spherical_harmonic_index,
+    associated_legendre_ortho, 
+    ravel_associated_legendre_index,
     wigner_matrices,
     sample_3d,
     find_rcf_peak_angles,

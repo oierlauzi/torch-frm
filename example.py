@@ -10,19 +10,27 @@ def _make_test_volume() -> np.ndarray:
     volume = np.zeros((64, 64, 64), dtype=np.float32)
     
     rng = np.random.default_rng(42)
-    points = rng.integers(low=16, high=48, size=(64, 3))
+    points = rng.integers(low=16, high=48, size=(256, 3))
     for point in points:
-        volume[tuple(point)] = 1.0
+        volume[tuple(point)] += 1.0
 
     volume_ft = np.fft.rfftn(volume)
     wz = np.fft.fftfreq(volume.shape[0])[:,None, None]
     wy = np.fft.fftfreq(volume.shape[1])[None, :, None]
     wx = np.fft.rfftfreq(volume.shape[2])[None, None, :]
     w = np.sqrt(np.square(wx) + np.square(wy) + np.square(wz))
-    sigma = 0.25
+    sigma = 0.1
     volume_ft *= np.exp(-0.5 * np.square(w / sigma))
     
     volume = np.fft.irfftn(volume_ft)
+    
+    if False:
+        volume += np.rot90(volume, k=1, axes=(1, 2))
+        volume += np.rot90(volume, k=2, axes=(1, 2))
+
+    if False:
+        volume += np.rot90(volume, k=2, axes=(1, 2))
+        volume += np.rot90(volume, k=2, axes=(0, 1))
     
     return volume
 
@@ -48,6 +56,9 @@ if __name__ == "__main__":
     ang_z1 = 40.0
     ang_y = 60
     ang_z2 = -25
+    #ang_z1 =  0.0
+    #ang_y = 0.0
+    #ang_z2 = 0.0
     s = math.sin(math.radians(ang_z1))
     c = math.cos(math.radians(ang_z1))
     RZ1 = np.array([
@@ -72,8 +83,8 @@ if __name__ == "__main__":
     R = RZ1 @ RY @ RZ2
 
     volume = _make_test_volume()
-    volume_exp = torch.tensor(_rotate_volume_around_center(volume, R))
     volume_ref = torch.tensor(volume)
+    volume_exp = torch.tensor(_rotate_volume_around_center(volume, R))
     
     B = 32
     decomposer = SHVolumeDecomposer(
@@ -91,5 +102,6 @@ if __name__ == "__main__":
     alpha, beta, gamma = find_rcf_peak_angles(rcf)
     print(math.degrees(alpha), math.degrees(beta), math.degrees(gamma))
     
+    #napari.view_image(volume, name='RCF')
     napari.view_image(rcf.numpy(), name='RCF')
     napari.run()
