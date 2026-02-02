@@ -93,14 +93,13 @@ class SHVolumeDecomposer:
         u = _spherical_to_cartesian(self.theta_grid_, self.phi_grid_)
         self.cartesian_grid_ = self.radii_[:,None,None,None] * u
         
-        self.spherical_harmonics_ = spherical_harmonics(
-            self.theta_grid_, 
-            self.phi_grid_, 
+        self.associated_legendre_ = _associated_legendre_ortho(
+            self.theta_, 
             self.bandwidth_
         )
         
-        self._decomposition_kernel = \
-            torch.sin(self.theta_grid_)*self.spherical_harmonics_.conj()
+        self._theta_integration_kernel = \
+            torch.sin(self.theta_)*self.associated_legendre_
             
     def transform(self, volume: torch.Tensor) -> torch.Tensor:
         """
@@ -120,14 +119,16 @@ class SHVolumeDecomposer:
         """
         
         shells = sample_3d(volume, self.cartesian_grid_)
+        
+        if volume.is_complex():
+            raise NotImplementedError("Complex volumes are not supported yet.")
+        else:
+            return self._transform_real(shells)
+      
+    def _transform_real(self, shells: torch.Tensor) -> torch.Tensor:
         shells_ft = torch.fft.rfft(shells, dim=2) # Phi direction
-
-        legendre = _associated_legendre_ortho(
-            self.theta_,
-            self.bandwidth_
-        )
-        sin_theta = torch.sin(self.theta_)
-        integration_kernel = (legendre * sin_theta).to(shells_ft.dtype)
+        
+        theta_integration_kernel = self._theta_integration_kernel.to(shells_ft.dtype)
         radii = self.radii_.to(shells_ft.dtype)
         
         out = torch.zeros(
@@ -145,30 +146,14 @@ class SHVolumeDecomposer:
                 out[:,base_out+m] = torch.einsum(
                     'ji,i,j->j', 
                     shells_ft[:,:,m],
-                    phase*integration_kernel[base_in+m],
+                    phase*theta_integration_kernel[base_in+m],
                     radii
                 )
                 phase = -phase
             
             phase = -1
             for m in range(1, l+1):
-                out[:,base_out-m] = torch.einsum(
-                    'ji,i,j->j', 
-                    shells_ft[:,:,m].conj(),
-                    phase*integration_kernel[base_in+m],
-                    radii
-                )
+                out[:,base_out-m] = phase*out[:,base_out-m].conj()
                 phase = -phase
             
         return out
-        """
-        shells = shells.to(self.spherical_harmonics_.dtype)
-        
-        return torch.einsum(
-            'kij,hij,k->kh', 
-            shells, 
-            self._decomposition_kernel, 
-            self.radii_
-        )
-        """
-        
