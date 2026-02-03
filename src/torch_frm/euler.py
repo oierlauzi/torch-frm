@@ -23,6 +23,9 @@ def euler_zyz_to_matrix(
         The matrices associated to the euler angles. The shape is derived
         from the broadcast of input operand shapes suffixed by (3, 3)
     """
+    alpha = torch.as_tensor(alpha)
+    beta = torch.as_tensor(beta)
+    gamma = torch.as_tensor(gamma)
     
     batch_shape = torch.broadcast_shapes(alpha.shape, beta.shape, gamma.shape)
     dtype = torch.promote_types(alpha.dtype, torch.promote_types(beta.dtype, gamma.dtype))
