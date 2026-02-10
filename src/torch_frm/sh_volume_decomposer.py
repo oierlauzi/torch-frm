@@ -153,7 +153,7 @@ class SHVolumeDecomposer:
             
             phase = -1
             for m in range(1, l+1):
-                out[:,base_out-m] = phase*out[:,base_out-m].conj()
+                out[:,base_out-m] = phase*out[:,base_out+m].conj()
                 phase = -phase
             
         return out
