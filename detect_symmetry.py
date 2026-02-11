@@ -1,8 +1,5 @@
-from typing import Optional, Tuple
-import numpy as np
-import scipy.ndimage
+from typing import Optional
 import torch
-import math
 import argparse
 import mrcfile
 import napari
