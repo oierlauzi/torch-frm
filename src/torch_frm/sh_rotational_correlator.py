@@ -1,6 +1,9 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Set
 import torch
 import math
+import numpy as np
+import scipy.ndimage
+import scipy.sparse
 
 from .wigner import wigner_matrices
 
@@ -98,8 +101,64 @@ class SHRotationalCorrelator:
         rcf_ft = torch.fft.fftshift(rcf_ft)
         rcf_ft = rcf_ft[..., :(rcf_ft.shape[-1]//2 + 1)]
         return torch.fft.irfftn(rcf_ft)
-        
-def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
+
+def _find_common_labels(
+    first_face: torch.Tensor, 
+    last_face: torch.Tensor
+) -> Set[int]:
+    merges = set()
+    
+    both_faces = (first_face > 0) & (last_face > 0)
+    for i, j in zip(first_face[both_faces], last_face[both_faces]):
+        if i < j:
+            merges.add((i-1, j-1))
+        elif j < i:
+            merges.add((j-1, i-1))
+            
+    return merges
+
+def _label_rcf_peaks(mask: torch.Tensor) -> Tuple[torch.Tensor, int]:
+    labels, n_labels = scipy.ndimage.label(mask)
+
+    # Trivial case
+    if n_labels <= 1:
+        return labels, n_labels
+
+    top_face = labels[0,:,:]
+    bottom_face = labels[-1,:,:]
+    front_face = labels[:,0,:]
+    back_face = labels[:,-1,::-1] # Reversed!
+    left_face = labels[:,:,0]
+    right_face = labels[:,:,-1]
+
+    merges = set()
+    merges.update(_find_common_labels(top_face, bottom_face))
+    merges.update(_find_common_labels(front_face, back_face))
+    merges.update(_find_common_labels(left_face, right_face))
+
+    if not merges:
+        return labels, n_labels
+
+    graph_edges = np.array(list(merges), dtype=int)
+    graph = scipy.sparse.coo_array(
+        (np.ones(len(graph_edges)), (graph_edges[:, 0], graph_edges[:, 1])),
+        shape=(n_labels, n_labels)
+    )
+    n_components, component_labels = scipy.sparse.csgraph.connected_components(
+        graph, 
+        directed=False, 
+        return_labels=True
+    )
+    new_mapping = np.zeros(n_labels + 1, dtype=labels.dtype)
+    new_mapping[1:] = component_labels + 1
+    labels = new_mapping[labels]
+    
+    return labels, n_components
+ 
+def find_rcf_peak_angles(
+    rcf: torch.Tensor, 
+    tolerance: float = 0.5
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Find the optimal alignment angles in a Rotational Correlation Function (RCF)
     
@@ -131,13 +190,20 @@ def find_rcf_peak_angles(rcf: torch.Tensor) -> Tuple[float, float, float]:
     # Remove redundant part for computation
     rcf = rcf[:, :(N//2+1), :] 
     
-    # Find the angles associated to the peak
-    indices = torch.unravel_index(torch.argmax(rcf), rcf.shape)
-    xi, nu, omega = (2*math.pi / N) * torch.tensor(indices)
+    # Find peaks in the RCF
+    threshold = tolerance*rcf.max()
+    mask = rcf > threshold
+    labels, n_labels = _label_rcf_peaks(mask)
+    indices = torch.arange(1, n_labels+1)
+    peaks = scipy.ndimage.maximum_position(rcf, labels=labels, index=indices)
+    angles = (2*math.pi / N) * torch.tensor(peaks)
+    xi = angles[:, 0]
+    nu = angles[:, 1]
+    omega = angles[:, 2]
     
     # Convert to ZYZ extrinsic convention
-    alpha = float(omega - math.pi/2)
-    beta = float(math.pi - nu)
-    gamma = float(xi - math.pi/2)
+    alpha = omega - math.pi/2
+    beta = math.pi - nu
+    gamma = xi - math.pi/2
     
     return alpha, beta, gamma
