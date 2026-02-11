@@ -7,10 +7,11 @@ from torch_frm import (
     SHVolumeDecomposer, SHRotationalCorrelator, 
     find_rcf_peak_angles, euler_zyz_to_matrix
 )
+import scipy.ndimage
 
 def compute_rotational_self_correlation(
     volume: torch.Tensor,
-    bandwidth: int = 32,
+    bandwidth: int = 64,
     n_radii: Optional[int] = None
 ) -> torch.Tensor:
     if n_radii is None:
@@ -34,10 +35,10 @@ def main():
     rcf = compute_rotational_self_correlation(volume)
     
     # Uncomment to visualize the Rotational Cross-Correlation Function (RCF)
-    #napari.view_image((rcf > 0.55*rcf.max()).numpy(), name='RCF')
-    #napari.run()
+    napari.view_image(rcf.numpy(), name='RCF')
+    napari.run()
     
-    alpha, beta, gamma = find_rcf_peak_angles(rcf, 0.55)
+    alpha, beta, gamma = find_rcf_peak_angles(rcf, 0.5)
     matrices = euler_zyz_to_matrix(alpha, beta, gamma)
     n_peaks = len(matrices)
     print(n_peaks)

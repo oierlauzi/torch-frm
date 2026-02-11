@@ -8,7 +8,7 @@ def _sample_3d(
 ) -> torch.Tensor:
     return torch.nn.functional.grid_sample(
         volume, 
-        positions, 
+        positions,
         align_corners=False,
         mode=mode,
         padding_mode=padding
@@ -44,6 +44,8 @@ def sample_3d(
     """
     
     batch_shape = positions.shape[:-1]
+    offset = 1.0 / volume.shape[0]
+    positions = positions + offset
     
     volume = volume.view(1, 1, *volume.shape)
     positions = positions.view(1, -1, 1, 1, 3)

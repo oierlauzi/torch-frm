@@ -117,8 +117,11 @@ def _find_common_labels(
             
     return merges
 
-def _label_rcf_peaks(mask: torch.Tensor) -> Tuple[torch.Tensor, int]:
-    labels, n_labels = scipy.ndimage.label(mask)
+def _label_rcf_peaks(
+    mask: torch.Tensor, 
+    structure: Optional[torch.Tensor] = None
+) -> Tuple[torch.Tensor, int]:
+    labels, n_labels = scipy.ndimage.label(mask, structure=structure)
 
     # Trivial case
     if n_labels <= 1:
@@ -126,14 +129,11 @@ def _label_rcf_peaks(mask: torch.Tensor) -> Tuple[torch.Tensor, int]:
 
     top_face = labels[0,:,:]
     bottom_face = labels[-1,:,:]
-    front_face = labels[:,0,:]
-    back_face = labels[:,-1,::-1] # Reversed!
     left_face = labels[:,:,0]
     right_face = labels[:,:,-1]
 
     merges = set()
     merges.update(_find_common_labels(top_face, bottom_face))
-    merges.update(_find_common_labels(front_face, back_face))
     merges.update(_find_common_labels(left_face, right_face))
 
     if not merges:
@@ -152,12 +152,13 @@ def _label_rcf_peaks(mask: torch.Tensor) -> Tuple[torch.Tensor, int]:
     new_mapping = np.zeros(n_labels + 1, dtype=labels.dtype)
     new_mapping[1:] = component_labels + 1
     labels = new_mapping[labels]
+    n_labels = n_components
     
-    return labels, n_components
+    return labels, n_labels
  
 def find_rcf_peak_angles(
     rcf: torch.Tensor, 
-    tolerance: float = 0.5
+    threshold_rel: float = 0.5
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Find the optimal alignment angles in a Rotational Correlation Function (RCF)
@@ -191,9 +192,9 @@ def find_rcf_peak_angles(
     rcf = rcf[:, :(N//2+1), :] 
     
     # Find peaks in the RCF
-    threshold = tolerance*rcf.max()
+    threshold = threshold_rel*rcf.max()
     mask = rcf > threshold
-    labels, n_labels = _label_rcf_peaks(mask)
+    labels, n_labels = _label_rcf_peaks(mask, torch.ones(3, 3, 3))
     indices = torch.arange(1, n_labels+1)
     peaks = scipy.ndimage.maximum_position(rcf, labels=labels, index=indices)
     angles = (2*math.pi / N) * torch.tensor(peaks)
