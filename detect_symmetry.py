@@ -7,7 +7,6 @@ from torch_frm import (
     SHVolumeDecomposer, SHRotationalCorrelator, 
     find_rcf_peak_angles, euler_zyz_to_matrix
 )
-import scipy.ndimage
 
 def compute_rotational_self_correlation(
     volume: torch.Tensor,
