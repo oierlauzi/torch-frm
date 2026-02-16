@@ -105,7 +105,24 @@ class SHRotationalCorrelator:
 def _find_common_labels(
     first_face: torch.Tensor, 
     last_face: torch.Tensor
-) -> Set[int]:
+) -> Set[Tuple[int, int]]:
+    """
+    Given two opposing 'faces' of a label volume, find label pairs in
+    opposing positions to enable periodic edges.
+    
+    Parameters
+    -----------
+    first_face: torch.Tensor
+        One of the faces.
+    last_face: torch.Tensor
+        The opposite face.
+        
+    Returns
+    -------
+    out: Set[Tuple[int, int]]
+        Pairs of indices that are shared across boundaries. Each pair is
+        sorted, such that the first index is strictly less than the second.
+    """
     merges = set()
     
     both_faces = (first_face > 0) & (last_face > 0)
@@ -121,6 +138,26 @@ def _label_rcf_peaks(
     mask: torch.Tensor, 
     structure: Optional[torch.Tensor] = None
 ) -> Tuple[torch.Tensor, int]:
+    """
+    Given a binary segmentation label disjoint bodies with unique id-s 
+    considering periodic edges in X and Z axes (not Y).
+    
+    Parameters
+    -----------
+    mask: torch.Tensor
+        Binary segmentation.
+    structure:
+        Structure used to determine if two bodies are disjoint. If not provided
+        `scipy.ndimage.label`'s default structure is used.
+        
+    Returns
+    -------
+    labels: torch.Tensor
+        Labels assigned to each body of the mask. Labels are in [1, n_labels]
+        and 0 label is used to indentify the background.
+    n_labels: int
+        Number of different distinct bodies found in the mask.
+    """
     labels, n_labels = scipy.ndimage.label(mask, structure=structure)
 
     # Trivial case
