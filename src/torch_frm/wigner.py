@@ -51,7 +51,7 @@ def wigner_matrices(
         into N and `` may be used to extract a particular level.
     """
     
-    # FIXME: This was translated fron C-code and there is a lot of room to make 
+    # FIXME: This was translated from C-code and there is a lot of room to make 
     # it more Pythonic.
     size = 2*degrees
     N = _pyramid_volume(degrees)
