@@ -174,14 +174,14 @@ def find_rcf_peak_angles(
     )
     return _rcf_peak_indices_to_euler_zyz(indices, N)
 
-def find_auto_correlation_peak_shifts(
-    auto_correlation: np.ndarray, 
+def find_cross_correlation_peak_shifts(
+    cross_correlation: np.ndarray, 
     threshold_rel: float = 0.5
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    N = _require_cube(auto_correlation)
+    N = _require_cube(cross_correlation)
         
     indices = _find_correlation_peak_indices(
-        correlation_function=auto_correlation,
+        correlation_function=cross_correlation,
         threshold_rel=threshold_rel, 
         periodic_axis=(0, 1, 2)
     )
