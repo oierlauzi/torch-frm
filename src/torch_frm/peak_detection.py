@@ -189,10 +189,11 @@ def find_cross_correlation_peak_shifts(
     index_to_shift = np.fft.fftfreq(N, d=1/N)
     if max_shift is not None:
         max_shift2 = max_shift*max_shift
+        index_to_shift2 = np.square(index_to_shift)
         total_shift2_grid = \
-            np.square(max_shift[:,None,None]) + \
-            np.square(max_shift[None,:,None]) + \
-            np.square(max_shift[None,None,:])
+            index_to_shift2[:,None,None] + \
+            index_to_shift2[None,:,None] + \
+            index_to_shift2[None,None,:]
         
         # Mask out out of bounds peaks
         cross_correlation[total_shift2_grid > max_shift2] = 0
