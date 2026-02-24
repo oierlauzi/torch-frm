@@ -144,7 +144,7 @@ def _require_cube(x: np.ndarray) -> int:
 def find_rcf_peak_angles(
     rcf: np.ndarray, 
     threshold_rel: float = 0.5
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[Tuple[np.ndarray, np.ndarray, np.ndarray], np.ndarray]:
     """
     Find the optimal alignment angles in a Rotational Correlation Function (RCF)
     
