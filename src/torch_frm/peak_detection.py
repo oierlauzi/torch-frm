@@ -128,6 +128,15 @@ def _rcf_peak_indices_to_euler_zyz(indices: np.ndarray, n: int) -> np.ndarray:
     
     return alpha, beta, gamma
 
+def _require_cube(x: np.ndarray) -> int:
+    N = x.shape[0]
+    if x.shape != (N, N, N):
+        raise ValueError(
+            f"Expected rcf to have shape {(N, N, N)}, but got {x.shape}."
+        )
+        
+    return N
+
 def find_rcf_peak_angles(
     rcf: np.ndarray, 
     threshold_rel: float = 0.5
@@ -153,12 +162,7 @@ def find_rcf_peak_angles(
     gamma: np.ndarray
         Third rotation around Z axis in radians.
     """
-    
-    N = rcf.shape[0]
-    if rcf.shape != (N, N, N):
-        raise ValueError(
-            f"Expected rcf to have shape {(N, N, N)}, but got {rcf.shape}."
-        )
+    N = _require_cube(rcf)
         
     # Remove redundant part for computation
     rcf = rcf[:, :(N//2+1), :] 
@@ -174,11 +178,7 @@ def find_auto_correlation_peak_shifts(
     auto_correlation: np.ndarray, 
     threshold_rel: float = 0.5
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    N = auto_correlation.shape[0]
-    if auto_correlation.shape != (N, N, N):
-        raise ValueError(
-            f"Expected rcf to have shape {(N, N, N)}, but got {auto_correlation.shape}."
-        )
+    N = _require_cube(auto_correlation)
         
     indices = _find_correlation_peak_indices(
         correlation_function=auto_correlation,
