@@ -100,7 +100,7 @@ def _find_correlation_peak_indices(
     correlation_function: np.ndarray,
     threshold_rel: float = 0.5,
     periodic_axis: Optional[Iterable[int]] = None
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     threshold = threshold_rel*correlation_function.max()
     mask = correlation_function > threshold
     labels, n_labels = _label_mask(
@@ -109,11 +109,15 @@ def _find_correlation_peak_indices(
         structure=np.ones(3, 3, 3)
     )
     indices = np.arange(1, n_labels+1)
-    return scipy.ndimage.maximum_position(
+    peak_indices = scipy.ndimage.maximum_position(
         correlation_function, 
         labels=labels, 
         index=indices
     )
+    
+    peaks = correlation_function[peak_indices]
+    order = np.argsort(peaks, order='d')
+    return peak_indices[order], peaks[order]
 
 def _rcf_peak_indices_to_euler_zyz(indices: np.ndarray, n: int) -> np.ndarray:
     angles = (2*math.pi / n) * indices
@@ -167,24 +171,37 @@ def find_rcf_peak_angles(
     # Remove redundant part for computation
     rcf = rcf[:, :(N//2+1), :] 
     
-    indices = _find_correlation_peak_indices(
+    indices, values = _find_correlation_peak_indices(
         correlation_function=rcf, 
         threshold_rel=threshold_rel, 
         periodic_axis=(0, 2)
     )
-    return _rcf_peak_indices_to_euler_zyz(indices, N)
+    angles = _rcf_peak_indices_to_euler_zyz(indices, N)
+    return angles, values
 
 def find_cross_correlation_peak_shifts(
     cross_correlation: np.ndarray, 
-    threshold_rel: float = 0.5
+    threshold_rel: float = 0.5,
+    max_shift: Optional[float] = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     N = _require_cube(cross_correlation)
         
-    indices = _find_correlation_peak_indices(
+    index_to_shift = np.fft.fftfreq(N, d=1/N)
+    if max_shift is not None:
+        max_shift2 = max_shift*max_shift
+        total_shift2_grid = \
+            np.square(max_shift[:,None,None]) + \
+            np.square(max_shift[None,:,None]) + \
+            np.square(max_shift[None,None,:])
+        
+        # Mask out out of bounds peaks
+        cross_correlation[total_shift2_grid > max_shift2] = 0
+
+    indices, values = _find_correlation_peak_indices(
         correlation_function=cross_correlation,
         threshold_rel=threshold_rel, 
         periodic_axis=(0, 1, 2)
     )
     
-    index_to_shift = np.fft.fftfreq(N, d=1/N)
-    return index_to_shift[indices]
+    shifts = index_to_shift[indices]
+    return shifts, values
