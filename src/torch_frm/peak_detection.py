@@ -196,6 +196,7 @@ def find_cross_correlation_peak_shifts(
             index_to_shift2[None,None,:]
         
         # Mask out out of bounds peaks
+        cross_correlation = cross_correlation.copy()
         cross_correlation[total_shift2_grid > max_shift2] = 0
 
     indices, values = _find_correlation_peak_indices(
