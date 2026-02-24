@@ -169,3 +169,22 @@ def find_rcf_peak_angles(
         periodic_axis=(0, 2)
     )
     return _rcf_peak_indices_to_euler_zyz(indices, N)
+
+def find_auto_correlation_peak_shifts(
+    auto_correlation: np.ndarray, 
+    threshold_rel: float = 0.5
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    N = auto_correlation.shape[0]
+    if auto_correlation.shape != (N, N, N):
+        raise ValueError(
+            f"Expected rcf to have shape {(N, N, N)}, but got {auto_correlation.shape}."
+        )
+        
+    indices = _find_correlation_peak_indices(
+        correlation_function=auto_correlation,
+        threshold_rel=threshold_rel, 
+        periodic_axis=(0, 1, 2)
+    )
+    
+    index_to_shift = np.fft.fftfreq(N, d=1/N)
+    return index_to_shift[indices]
