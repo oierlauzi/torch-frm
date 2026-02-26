@@ -100,7 +100,26 @@ def _find_correlation_peak_indices(
     correlation_function: np.ndarray,
     threshold_rel: float = 0.5,
     periodic_axis: Optional[Iterable[int]] = None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[Tuple[np.ndarray, np.ndarray, np.ndarray], np.ndarray]:
+    """
+    Given an arbitrary 3D cross-correlation function find peaks on it.
+    
+    Parameters
+    -----------
+    correlation_function: np.ndarray
+        A 3D cross-correlation function.
+    threshold_rel: float
+        Ratio of the threshold and the global maximum in the function
+    periodic_axis: Optional[Iterable[int]]
+        Axis indices that are periodic.
+        
+    Returns
+    -------
+    indices: Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Tuple of the indices for the peaks in the function.
+    values: np.ndarray
+        Peak values for each of the detected peaks. In descending order.
+    """
     threshold = threshold_rel*correlation_function.max()
     mask = correlation_function > threshold
     labels, n_labels = _label_mask(
@@ -116,8 +135,9 @@ def _find_correlation_peak_indices(
     )
     
     peaks = correlation_function[peak_indices]
-    order = np.argsort(peaks, order='d')
-    return peak_indices[order], peaks[order]
+    order = np.argsort(peaks)
+    order = order[::-1] # Descending
+    return (peak_index[order] for peak_index in peak_indices), peaks[order]
 
 def _rcf_peak_indices_to_euler_zyz(indices: np.ndarray, n: int) -> np.ndarray:
     angles = (2*math.pi / n) * indices
@@ -159,12 +179,10 @@ def find_rcf_peak_angles(
     
     Returns
     -------
-    alpha: np.ndarray
-        First rotation around Z axis in radians.
-    beta: np.ndarray
-        Second rotation around Y axis in radians.
-    gamma: np.ndarray
-        Third rotation around Z axis in radians.
+    angles: Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Euler angles in ZYZ convention for which correlation peaks exist.
+    values: np.ndarray
+        Correlation values for the peaks. Sorted in descending order.
     """
     N = _require_cube(rcf)
         
@@ -184,6 +202,21 @@ def find_cross_correlation_peak_shifts(
     threshold_rel: float = 0.5,
     max_shift: Optional[float] = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Find the optimal alignment shifts for a cross-correlation function.
+    
+    Parameters
+    -----------
+    cross_correlation: np.ndarray
+        Cross correlation function. Must be (N, N, N) shape.
+    
+    Returns
+    -------
+    shifts: Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Shifts for Z, Y and X in pixels.
+    values: np.ndarray
+        Correlation values for the peaks. Sorted in descending order.
+    """
     N = _require_cube(cross_correlation)
         
     index_to_shift = np.fft.fftfreq(N, d=1/N)
