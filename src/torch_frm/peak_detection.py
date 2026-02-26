@@ -1,8 +1,9 @@
-from typing import Optional, Iterable, Tuple, Set
+from typing import Optional, Iterable, Tuple, Set, Union
 import math
 import numpy as np
 import scipy.ndimage
 import scipy.sparse
+import torch
 
 def _find_common_labels(
     first_face: np.ndarray, 
@@ -139,7 +140,10 @@ def _find_correlation_peak_indices(
     order = order[::-1] # Descending
     return (peak_index[order] for peak_index in peak_indices), peaks[order]
 
-def _rcf_peak_indices_to_euler_zyz(indices: np.ndarray, n: int) -> np.ndarray:
+def _rcf_peak_indices_to_euler_zyz(
+    indices: Union[np.ndarray, torch.Tensor], 
+    n: int
+) -> np.ndarray:
     angles = (2*math.pi / n) * indices
     xi = angles[:, 0]
     nu = angles[:, 1]
