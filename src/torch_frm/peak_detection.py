@@ -126,19 +126,20 @@ def _find_correlation_peak_indices(
     labels, n_labels = _label_mask(
         mask=mask,
         periodic_axis=periodic_axis,
-        structure=np.ones(3, 3, 3)
+        structure=np.ones((3, 3, 3))
     )
     indices = np.arange(1, n_labels+1)
-    peak_indices = scipy.ndimage.maximum_position(
+    peak_positions = scipy.ndimage.maximum_position(
         correlation_function, 
         labels=labels, 
         index=indices
     )
+    peak_indices = tuple(np.array(col) for col in zip(*peak_positions))
     
     peaks = correlation_function[peak_indices]
     order = np.argsort(peaks)
-    order = order[::-1] # Descending
-    return (peak_index[order] for peak_index in peak_indices), peaks[order]
+    order = np.flip(order) # Descending
+    return tuple(peak_index[order] for peak_index in peak_indices), peaks[order]
 
 def _rcf_peak_indices_to_euler_zyz(
     indices: Union[np.ndarray, torch.Tensor], 
@@ -198,7 +199,8 @@ def find_rcf_peak_angles(
         threshold_rel=threshold_rel, 
         periodic_axis=(0, 2)
     )
-    angles = _rcf_peak_indices_to_euler_zyz(indices, N)
+    
+    angles = _rcf_peak_indices_to_euler_zyz(np.array(indices).T, N)
     return angles, values
 
 def find_cross_correlation_peak_shifts(

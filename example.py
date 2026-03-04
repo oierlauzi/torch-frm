@@ -20,7 +20,7 @@ def _make_test_volume() -> np.ndarray:
     wx = np.fft.rfftfreq(volume.shape[2])[None, None, :]
     w = np.sqrt(np.square(wx) + np.square(wy) + np.square(wz))
     sigma = 0.1
-    volume_ft *= np.exp(-0.5 * np.square(w / sigma))
+    volume_ft *= np.exp(-0.1 * np.square(w / sigma))
     
     volume = np.fft.irfftn(volume_ft)
     
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     volume_ref = torch.tensor(volume)
     volume_exp = torch.tensor(_rotate_volume_around_center(volume, R))
     
-    B = 32
+    B = 64
     decomposer = SHVolumeDecomposer(
         bandwidth=B, 
         n_radii=len(volume)//2,
@@ -97,11 +97,11 @@ if __name__ == "__main__":
     
     sh_x = decomposer.transform(volume_exp)
     sh_r = decomposer.transform(volume_ref)
-    rcf = correlator.rcf(sh_x, sh_r)
+    rcf = correlator.rcf(sh_x, sh_r).numpy()
     
-    alpha, beta, gamma = find_rcf_peak_angles(rcf)
-    print(math.degrees(alpha), math.degrees(beta), math.degrees(gamma))
+    (alpha, beta, gamma), value = find_rcf_peak_angles(rcf)
+    print(math.degrees(gamma), math.degrees(beta), math.degrees(alpha))
     
     #napari.view_image(volume, name='RCF')
-    napari.view_image(rcf.numpy(), name='RCF')
+    napari.view_image(rcf, name='RCF')
     napari.run()
