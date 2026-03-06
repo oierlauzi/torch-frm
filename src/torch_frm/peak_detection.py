@@ -11,7 +11,7 @@ def _find_common_labels(
 ) -> Set[Tuple[int, int]]:
     """
     Given two opposing 'faces' of a label volume, find label pairs in
-    opposing positions to enable periodic edges.
+    opposing positions that produce periodic edges.
     
     Parameters
     -----------
@@ -44,7 +44,7 @@ def _label_mask(
 ) -> Tuple[np.ndarray, int]:
     """
     Given a binary segmentation label disjoint bodies with unique id-s 
-    considering periodic edges in X and Z axes (not Y).
+    optionally considering periodic edges.
     
     Parameters
     -----------
